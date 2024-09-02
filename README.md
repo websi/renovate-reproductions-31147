@@ -1,17 +1,24 @@
-# minimal-reproduction-template
+# 31147
 
-First, read the [Renovate minimal reproduction instructions](https://github.com/renovatebot/renovate/blob/main/docs/development/minimal-reproductions.md).
-
-Then replace the current `h1` with the Renovate Issue/Discussion number.
+Reproduction for [Renovate discussion 31147]([https://github.com/renovatebot/renovate/issues/12260](https://github.com/renovatebot/renovate/discussions/31147)).
 
 ## Current behavior
 
-Explain the current behavior here.
+Renovate do not support docker compose YAML tags `reset` and `override` and can not parse the yaml file.
+
+```
+DEBUG: Parsing Docker Compose config YAML failed (repository=..., packageFile=docker-compose.production.yml)
+       "err": {
+         "name": "YAMLException",
+         "reason": "unknown tag !<!reset>",
+         "mark": {
+           "name": null,
+```
 
 ## Expected behavior
 
-Explain the expected behavior here.
+Renovate can parse docker compose files with YAML tags.
 
-## Link to the Renovate issue or Discussion
+## Link to the Renovate Discussion
 
-Put your link to the Renovate issue or Discussion here.
+[Put your link to the Renovate issue or Discussion here.](https://github.com/renovatebot/renovate/discussions/31147)
