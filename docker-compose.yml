@@ -1,0 +1,109 @@
+volumes:
+  db:
+  state:
+  files:
+  theme:
+  media:
+  sitemap:
+  thumbnail:
+  log:
+
+x-shopware-volumes: &shopware_volumes
+  volumes:
+    - files:/var/www/html/files
+    - theme:/var/www/html/public/theme
+    - media:/var/www/html/public/media
+    - thumbnail:/var/www/html/public/thumbnail
+    - sitemap:/var/www/html/public/sitemap
+    - log:/var/www/html/var/log
+
+x-shopware-defaults: &shopware_defaults
+  <<: *shopware_volumes
+  image: ${CI_REGISTRY_IMAGE}/shopware:${CI_COMMIT_REF_SLUG}
+  restart: unless-stopped
+  environment:
+    APP_ENV: prod
+    APP_URL:
+    APP_SECRET:
+    INSTANCE_ID:
+    MYSQL_PASSWORD:
+    DATABASE_HOST: database
+    DATABASE_URL: mysql://shopware:${MYSQL_PASSWORD}@database/shopware
+    MAILER_DSN:
+    JWT_PRIVATE_KEY:
+    JWT_PUBLIC_KEY:
+    SENTRY_DSN:
+
+services:
+  init:
+    <<: *shopware_defaults
+    restart: no
+    entrypoint: /setup
+    depends_on:
+      database:
+        condition: service_healthy
+
+  web:
+    <<: *shopware_defaults
+    build:
+      context: '.'
+      dockerfile: 'Dockerfile'
+      cache_from:
+        - ${CI_REGISTRY_IMAGE}/shopware:${CI_COMMIT_REF_SLUG}
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-s", "-f", "-i", "localhost:8000/api/_info/health-check" ]
+      interval: 10s
+      timeout: 10s
+      retries: 100
+      start_period: 15s
+    ports:
+      - "80:8000"
+
+  worker:
+    extends:
+      service: web
+    build: !reset null
+    healthcheck: !reset null
+    ports: !reset []
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      database:
+        condition: service_healthy
+    entrypoint: [ "php", "bin/console", "messenger:consume", "-vv", "async", "low_priority", "--time-limit=300", "--memory-limit=512M" ]
+    deploy:
+      replicas: 2
+
+  scheduled-task:
+    extends:
+      service: web
+    build: !reset null
+    healthcheck: !reset null
+    ports: !reset []
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      database:
+        condition: service_healthy
+    entrypoint: [ "php", "bin/console", "scheduled-task:run", "-vv", "--time-limit=120","--memory-limit=512M" ]
+
+  database:
+    restart: unless-stopped
+    image: docker.io/bitnami/mysql:8.4.2
+    environment:
+      MYSQL_DATABASE: shopware
+      MYSQL_ROOT_PASSWORD:
+      MYSQL_USER: shopware
+      MYSQL_PASSWORD:
+    volumes:
+      - db:/bitnami/mysql/data:rw
+    healthcheck:
+      test: [ 'CMD', '/opt/bitnami/scripts/mysql/healthcheck.sh' ]
+      interval: 15s
+      timeout: 5s
+      retries: 6
