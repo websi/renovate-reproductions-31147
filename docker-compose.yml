@@ -94,7 +94,7 @@ services:
 
   database:
     restart: unless-stopped
-    image: docker.io/bitnami/mysql:8.4.2
+    image: docker.io/bitnami/mysql:9.0.1@sha256:26a869b87b419ea6d9e7e45df97e890138ab3eafb49fa59abe7a6a444adc61ca
     environment:
       MYSQL_DATABASE: shopware
       MYSQL_ROOT_PASSWORD:
